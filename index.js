@@ -109,7 +109,59 @@ function local_utf8_decode(bytes) {
 
 
 // Native bindings are loaded by the runtime into t["@titanpl/core"]
-const natives = t["@titanpl/core"] || {};
+const _raw_natives = t["@titanpl/core"] || {};
+
+/**
+ * Proxy wrapper for native functions.
+ * Provides fallback to titan_export if a function is not directly available.
+ */
+const natives = new Proxy(_raw_natives, {
+    get: (target, prop) => {
+        // If it's already a function on the target, return it
+        if (typeof target[prop] === 'function') {
+            return target[prop].bind(target);
+        }
+
+        // --- ABI FALLBACK ---
+        // If native function is not directly available, but titan_export is
+        if (typeof target.titan_export === 'function') {
+            return (...args) => {
+                const request = JSON.stringify({
+                    function: prop.toString(),
+                    params: args
+                });
+                
+                const response_str = target.titan_export(request);
+                
+                // Handle possible errors or non-JSON responses
+                if (!response_str || typeof response_str !== 'string') return response_str;
+                
+                try {
+                    const response = JSON.parse(response_str);
+                    if (response && typeof response === 'object' && response.error) {
+                        // Special case: if error is "Function '...' not found", 
+                        // we might let it return undefined instead of throwing
+                        if (response.error.includes("not found")) {
+                            console.warn(`[Titan] Native warning: ${response.error}`);
+                            return undefined;
+                        }
+                        throw new Error(response.error);
+                    }
+                    return response;
+                } catch (e) {
+                    // If parsing failed but it wasn't a JSON error, it might be a raw string response
+                    if (e.message && (e.message.includes("Unexpected token") || e.name === "SyntaxError")) {
+                        return response_str;
+                    }
+                    throw e;
+                }
+            };
+        }
+
+        // Return undefined if not found anywhere
+        return target[prop];
+    }
+});
 
 // --- FS ---
 /** File System module */
