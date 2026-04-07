@@ -307,29 +307,18 @@ export declare const buffer: TitanCore.BufferModule;
  * **Performance:** ~150,000+ ops/sec (native Rust RwLock<HashMap>)
  *
  * **Methods:**
- * - `get(key)` / `set(key, value)` — String storage
- * - `getObject(key)` / `setObject(key, value)` — Complex object storage
+ * - `get(key)` / `set(key, value)` — Automatic JSON storage
  * - `remove(key)` / `clear()` — Deletion
  * - `keys()` — List all keys
- * - `serialize(value)` / `deserialize(bytes)` — V8 serialization
  *
  * @example
  * ```js
  * import { ls } from '@titanpl/core';
  *
- * // String storage
- * ls.set("user:123", JSON.stringify({ name: "Alice" }));
- * const user = JSON.parse(ls.get("user:123") || "{}");
- *
- * // Complex objects (preserves Map, Set, Date)
- * const data = {
- *     users: new Map([["alice", { role: "admin" }]]),
- *     tags: new Set(["active"]),
- *     created: new Date()
- * };
- * ls.setObject("session", data);
- * const restored = ls.getObject("session");
- * // restored.users instanceof Map → true
+ * // Automatically handles objects
+ * ls.set("user:123", { name: "Alice", role: "admin" });
+ * const user = ls.get("user:123");
+ * console.log(user.name); // → "Alice"
  *
  * // Cleanup
  * ls.remove("user:123");

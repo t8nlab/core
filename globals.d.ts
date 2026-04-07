@@ -1482,54 +1482,42 @@ declare global {
          */
         interface LocalStorage {
             /**
-             * Get a string value by key.
+             * Get a value by key. Automatically parses JSON strings into objects/arrays.
              *
              * @param key - Storage key
-             * @returns Stored string value, or `null` if not found
+             * @returns Stored value, or `null` if not found
              *
              * @example
              * ```js
-             * const value = t.ls.get("config:theme");
-             * // → "dark" or null
+             * const user = t.ls.get("user:123");
+             * if (user) console.log(user.name);
              * ```
              */
-            get(key: string): string | null;
+            get(key: string): any;
 
             /**
-             * Store a string value under a key.
+             * Store a value under a key. Automatically stringifies objects/arrays as JSON.
              *
              * @param key - Storage key
-             * @param value - String value to store
+             * @param value - Value to store (string, object, array, number, etc.)
              *
              * @example
              * ```js
-             * t.ls.set("config:theme", "dark");
-             * t.ls.set("user:123", JSON.stringify({ name: "Alice" }));
+             * t.ls.set("user:123", { name: "Alice" });
+             * t.ls.set("count", 42);
              * ```
              */
-            set(key: string, value: string): void;
+            set(key: string, value: any): void;
 
             /**
              * Remove a key from storage.
              *
-             * @param key - Key to remove (no error if key doesn't exist)
-             *
-             * @example
-             * ```js
-             * t.ls.remove("session:expired");
-             * ```
+             * @param key - Key to remove
              */
             remove(key: string): void;
 
             /**
              * Clear all keys and values from storage.
-             *
-             * **⚠️ Destructive operation** — removes everything.
-             *
-             * @example
-             * ```js
-             * t.ls.clear();
-             * ```
              */
             clear(): void;
 
@@ -1537,129 +1525,8 @@ declare global {
              * Get a list of all stored keys.
              *
              * @returns Array of all key names
-             *
-             * @example
-             * ```js
-             * const keys = t.ls.keys();
-             * // → ["user:123", "config:theme", "cache:data"]
-             *
-             * // Filter keys by prefix
-             * const userKeys = keys.filter(k => k.startsWith("user:"));
-             * ```
              */
             keys(): string[];
-
-            /**
-             * Store a complex JavaScript object using V8 serialization.
-             *
-             * **Advantages over JSON.stringify:**
-             * - ✅ Preserves `Map`, `Set`, `Date`, `RegExp`, `BigInt`
-             * - ✅ Handles circular references
-             * - ✅ ~50x faster than JSON for large objects
-             *
-             * @param key - Storage key
-             * @param value - Any JavaScript value to store
-             *
-             * @example
-             * ```js
-             * const session = {
-             *     user: { id: 1, name: "Alice" },
-             *     permissions: new Set(["read", "write"]),
-             *     metadata: new Map([["loginTime", new Date()]]),
-             *     count: BigInt(9007199254740993)
-             * };
-             *
-             * t.ls.setObject("session:abc", session);
-             * ```
-             */
-            setObject(key: string, value: any): void;
-
-            /**
-             * Retrieve and deserialize a complex JavaScript object.
-             *
-             * @typeParam T - Expected return type
-             * @param key - Storage key
-             * @returns Deserialized object, or `null` if not found or invalid
-             *
-             * @example
-             * ```js
-             * const session = t.ls.getObject("session:abc");
-             *
-             * if (session) {
-             *     session.permissions instanceof Set; // → true
-             *     session.metadata instanceof Map;    // → true
-             *     session.metadata.get("loginTime") instanceof Date; // → true
-             * }
-             * ```
-             */
-            getObject<T = any>(key: string): T | null;
-
-            /**
-             * Serialize a JavaScript value to V8 binary format.
-             *
-             * Useful for manual serialization before storing or transmitting.
-             *
-             * @param value - Value to serialize
-             * @returns Binary representation as `Uint8Array`
-             *
-             * @example
-             * ```js
-             * const data = { map: new Map([["a", 1]]) };
-             * const bytes = t.ls.serialize(data);
-             * // bytes can be stored, sent over network, etc.
-             * ```
-             */
-            serialize(value: any): Uint8Array;
-
-            /**
-             * Deserialize V8 binary format back to a JavaScript value.
-             *
-             * @param bytes - Binary data to deserialize
-             * @returns Original JavaScript value
-             *
-             * @example
-             * ```js
-             * const data = t.ls.deserialize(bytes);
-             * // data.map instanceof Map → true
-             * ```
-             */
-            deserialize(bytes: Uint8Array): any;
-
-            /**
-             * Register a custom class for serialization/hydration support.
-             *
-             * @param ClassRef - Constructor function of the class
-             * @param hydrateFn - Optional custom hydration function
-             * @param typeName - Optional type name override
-             *
-             * @example
-             * ```js
-             * class User {
-             *     constructor(name, email) {
-             *         this.name = name;
-             *         this.email = email;
-             *     }
-             * }
-             *
-             * t.ls.register(User, (data) => new User(data.name, data.email));
-             * ```
-             */
-            register(ClassRef: Function, hydrateFn?: Function, typeName?: string): void;
-
-            /**
-             * Hydrate a custom object from serialized data.
-             *
-             * @param typeName - Registered type name
-             * @param data - Plain object data
-             * @returns Hydrated class instance
-             *
-             * @example
-             * ```js
-             * const user = t.ls.hydrate("User", { name: "Alice", email: "alice@example.com" });
-             * // user instanceof User → true
-             * ```
-             */
-            hydrate(typeName: string, data: object): any;
         }
 
         // =====================================================================
